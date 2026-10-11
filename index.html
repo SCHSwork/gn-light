@@ -87,6 +87,10 @@ const M = {
 };
 const urls = (o, r, b, p) => [M.jsd(o, r, b, p), M.gh(o, r, b, p), M.hack(o, r, b, p)];
 const OG = ["SCHSwork", "GN-originals", "main"];
+// The game library is pinned to its last clean version: on Oct 11, 2026 every
+// game file in its newest version had a malicious ad script added (commit ee1a41a).
+const LIB = "48c0631289237dd2e9e202fde532edfae4ed2acf";
+const BAD = [/data-r=["']c7a94e["']/i, /xa0f20fba9693cbb2c66516f1/, /__gnGameAd/];
 const LS = {
   get(k, d) { try { const v = localStorage.getItem("gnl-" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(k, v) { try { localStorage.setItem("gnl-" + k, JSON.stringify(v)); } catch {} }
@@ -238,6 +242,8 @@ grid.addEventListener("click", e => {
 const AD = /(^|\.)(googletagmanager\.com|google-analytics\.com|analytics\.google\.com|r9x\.in|googlesyndication\.com|doubleclick\.net|adnxs\.com|adsterra\.com|highperformanceformat\.com|effectivegatecpm\.com|profitableratecpm\.com|propellerads\.com|popads\.net|a-ads\.com)$/i;
 function host(u) { try { return new URL(u, "https://x/").hostname; } catch { return ""; } }
 function clean(html) {
+  // Never run a game file that contains the known malicious script
+  if (BAD.some(re => re.test(html))) throw Object.assign(new Error("blocked"), { blocked: true });
   // Some library files contain the page twice; the second copy crashes the game
   const e = html.search(/<\/html\s*>/i);
   if (e !== -1 && /<html\b/i.test(html.slice(e))) html = html.slice(0, e) + "</html>";
@@ -258,7 +264,7 @@ function withBase(html, base) {
 }
 async function gameHtml(z) {
   if (z.kind === "lib") {
-    return clean((await first(urls("freebuisness", "html", "main", z.file), "text", 30000)).v);
+    return clean((await first(urls("freebuisness", "html", LIB, z.file), "text", 30000)).v);
   }
   const r = await first(urls(...OG, z.file), "text", 30000);
   const dir = z.file.includes("/") ? z.file.slice(0, z.file.lastIndexOf("/") + 1) : "";
@@ -302,7 +308,9 @@ async function open(z) {
     const html = await fetchGame(z);
     if (cur !== z) return;
     m.style.display = "none"; write(html);
-  } catch { if (cur === z) m.textContent = "Couldn't load this game. Try again in a minute."; }
+  } catch (e) {
+    if (cur === z) m.textContent = e && e.blocked ? "This game was blocked: its file contains a known malicious script." : "Couldn't load this game. Try again in a minute.";
+  }
 }
 function close() {
   cur = null; write(""); $("player").classList.remove("on"); document.body.style.overflow = "";
