@@ -309,7 +309,7 @@ async function open(z) {
     if (cur !== z) return;
     m.style.display = "none"; write(html);
   } catch (e) {
-    if (cur === z) m.textContent = e && e.blocked ? "This game was blocked: its file contains a known malicious script." : "Couldn't load this game. Try again in a minute.";
+    if (cur === z) m.textContent = e && e.blocked ? "This game was blocked to keep you safe. Its game files were found to contain malicious code (added to the outside game library on October 11), so it can't be played right now." : "Couldn't load this game. Try again in a minute.";
   }
 }
 function close() {
