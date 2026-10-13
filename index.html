@@ -344,6 +344,16 @@ load().then(() => {
   if (id) open(all.find(z => z.id === id));
 });
 if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+
+// ── Online count: say "still here" every 2 min (counted on GN 2.0's status light and the status page) ──
+(() => {
+  const P = "gn-math-dfd85", K = "AIzaSyCVUtHKcMZCs7aaCcO_Gp8fmy41MZnjqcs";
+  let id = LS.get("pid", "");
+  if (!/^[A-Za-z0-9]{20}$/.test(id)) { const a = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"; id = Array.from(crypto.getRandomValues(new Uint8Array(20)), b => a[b % 62]).join(""); LS.set("pid", id); }
+  const beat = () => document.hidden || fetch(`https://firestore.googleapis.com/v1/projects/${P}/databases/(default)/documents:commit?key=${K}`, { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ writes: [{ update: { name: `projects/${P}/databases/(default)/documents/presence/${id}`, fields: { s: { stringValue: "light" } } }, updateTransforms: [{ fieldPath: "t", setToServerValue: "REQUEST_TIME" }] }] }) }).catch(() => {});
+  setTimeout(beat, 5000); setInterval(beat, 120000);
+})();
 </script>
 </body>
 </html>
